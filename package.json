@@ -1,0 +1,29 @@
+{
+  "name": "nqm-databot-parkgrab",
+  "version": "0.1.0",
+  "description": "Databot to grab Parking data",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nqminds/nqm-databot-parkgrab.git"
+  },
+  "author": "mereacre@gmail.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nqminds/nqm-databot-parkgrab/issues"
+  },
+  "homepage": "https://github.com/nqminds/nqm-databot-parkgrab#readme",
+  "dependencies": {
+    "bluebird": "^3.4.6",
+    "debug": "^2.2.0",
+    "lodash": "^4.16.4",
+    "nqm-api-tdx": "^0.1.17",
+    "nqm-databot-utils": "^0.1.4",
+    "superagent": "^2.3.0",
+    "xml2js": "^0.4.17"
+  },
+  "devDependencies": {}
+}
