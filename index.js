@@ -22,122 +22,78 @@ function GrapPark(tdxApi, output, packageParams) {
                 // Pick the first element of the table
                 // as only one API call is needed for this particulat dataset
                 element = sourcesData.data[0];
-                
+
                 if (element.Src != 'MK' && element.Datatype != 'XML')
                     return;
             }
 
-            _.map(sourcesData.data, function(val){
+            _.map(sourcesData.data, function (val) {
                 idList.push(val.LotCode);
             });
-            
+
             var req = function (el, cb) {
 
                 output.debug("Processing element Host:%s", el.Host);
-                
+
                 request
                     .get(el.Host + el.Path)
                     .auth(el.APIKey, '')
                     .end((error, response) => {
                         if (error) {
                             output.error("API request error: %s", error);
+                            cb();
                         } else {
                             parseXmlString(response.text, function (errXmlParse, result) {
-                                if (errXmlParse)
+                                if (errXmlParse) {
                                     output.error("XML parse error: %s", JSON.stringify(errXmlParse));
-                                else {
-                                    _.map(result.feed.datastream, function(val){
-                                        if (idList.indexOf(Number(val['$']['id']))>-1) {
-                                            var entry  = {
-                                                'id':Number(val['$']['id']),
-                                                'timestamp':Number(new Date(val.current_time[0]).getTime()),
-                                                'currentvalue':Number(val.current_value[0]),
-                                                'maxvalue':Number(val.max_value[0])
+                                    cb();
+                                } else {
+                                    var entryList = [];
+                                    _.map(result.feed.datastream, function (val) {
+                                        if (idList.indexOf(Number(val['$']['id'])) > -1) {
+                                            var entry = {
+                                                'ID': Number(val['$']['id']),
+                                                'timestamp': Number(new Date(val.current_time[0]).getTime()),
+                                                'currentvalue': Number(val.current_value[0]),
+                                                'maxvalue': Number(val.max_value[0])
                                             };
-                                            _.map(entry, function(val, key){
-                                               output.result({'key':key, 'value':val}); 
-                                            });
+
+                                            entryList.push(entry);
                                         }
                                     });
+
+                                    var addRecurs = function (entryList, cbAdd) {
+                                        if (!entryList.length)
+                                            cbAdd();
+                                        else {
+                                            var one_element = entryList.pop();
+                                            
+                                            tdxApi.addDatasetData(packageParams.parkDataTable, one_element, function (errAdd, resAdd) {
+                                                if (errAdd) {
+                                                    output.error("Error adding entry to dataset: %s", JSON.stringify(errAdd));
+                                                    addRecurs(entryList, cbAdd);
+                                                } else {
+                                                    output.debug("Added %s to the dataset", JSON.stringify(one_element));
+                                                    output.result({ 'key': 'ID', 'value': one_element });
+                                                    addRecurs(entryList, cbAdd);
+                                                }
+                                            });
+                                        }
+                                    };
+                                    addRecurs(entryList, cb)
                                 }
                             });
                         }
                     });
-
-                /*        
-                if (element.Src == 'MK' && element.Datatype == 'XML') {
-                    request
-                        .get(element.Host + element.Path)
-                        .auth(element.APIKey, '')
-                        .end((error, response) => {
-                            if (error) {
-                                output.error("API request error: %s", error);
-                                req(gpslist, reqlist, cb);
-                            } else
-                                parseXmlString(response.text, function (errXmlParse, result) {
-                                    if (errXmlParse) {
-                                        output.error("XML parse error: %s", JSON.stringify(errXmlParse));
-                                        req(gpslist, reqlist, cb);
-                                    } else {
-                                        var timestamp, lat, lon, ele;
-
-                                        _.forEach(result.feed.datastream, function (field) {
-                                            if (field['$']['id'] == "1") {
-                                                var date = new Date(Date.parse(field['current_time']));
-                                                timestamp = date.getTime();
-                                            } else if (field['$']['id'] == "2")
-                                                lat = field['current_value'];
-                                            else if (field['$']['id'] == "3")
-                                                lon = field['current_value'];
-                                        });
-                                        
-                                        
-                                        var entry = {
-                                            'ID': Number(element.ID),
-                                            'timestamp': Number(timestamp),
-                                            'lat': Number(lat),
-                                            'lon': Number(lon),
-                                            'ele': Number(result.feed['location'][0]['ele'])
-                                        };
-
-                                        tdxApi.addDatasetData(packageParams.gpsDataTable, entry, function (errAdd, resAdd) {
-                                            if (errAdd) {
-                                                output.error("Error adding entry to dataset: %s", JSON.stringify(errAdd));
-                                                req(gpslist, reqlist, cb);
-                                            } else {
-                                                gpslist.push(entry);
-
-                                                tdxApi.updateDatasetData(packageParams.gpsDataTableLatest, entry, updateIDState[element.ID], function (errUpdate, resUpdate) {
-                                                    if (errUpdate) {
-                                                        output.error("Update: %s", JSON.stringify(errUpdate));
-                                                        updateIDState[element.ID] = !updateIDState[element.ID];                                                        
-                                                    } else {
-                                                        output.debug("Update: %s", JSON.stringify(entry));
-
-                                                        if (updateIDState[element.ID]) updateIDState[element.ID] = false;
-                                                    }
-
-                                                    req(gpslist, reqlist, cb);
-                                                });
-                                            }
-                                        });
-                                    }
-                                });
-                        });
-                } else {
-                    cb(gpslist);
-                    return;
-                }
-                */
             }
 
-            req(element, function(){output.debug("Test");});
-
-            /*
+            var computing = false;
             var timer = setInterval(function () {
-                runreq();
+                if (!computing) {
+                    computing = true;
+                    req(element, function () { computing = false; });
+                }
             }, packageParams.timerFrequency);
-            */
         }
     });
 }
