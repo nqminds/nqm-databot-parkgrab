@@ -74,7 +74,10 @@ function GrapPark(tdxApi, output, packageParams) {
                                                     addRecurs(entryList, cbAdd);
                                                 } else {
                                                     output.debug("Added %s to the dataset", JSON.stringify(one_element));
-                                                    output.result({ 'key': 'ID', 'value': one_element });
+                                                    //output.result({ 'key': 'ID', 'value': one_element });
+                                                    _.map(one_element, function(val,key){
+                                                        output.result({ 'key': key, 'value': val });
+                                                    });
                                                     addRecurs(entryList, cbAdd);
                                                 }
                                             });
