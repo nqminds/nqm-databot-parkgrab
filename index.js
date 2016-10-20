@@ -4,7 +4,7 @@
  * @param {Object} output functions.
  * @param {Object} packageParams of the databot.
  */
-function GrapPark(tdxApi, output, packageParams) {
+function GrabPark(tdxApi, output, packageParams) {
     tdxApi.getDatasetData(packageParams.parkSources, null, null, null, function (errSources, sourcesData) {
         if (errSources) {
             output.error("Error Park sources table: %s", JSON.stringify(errSources));
@@ -117,7 +117,7 @@ function databot(input, output, context) {
             output.error("%s", JSON.stringify(err));
             process.exit(1);
         } else {
-            GrapPark(tdxApi, output, context.packageParams);
+            GrabPark(tdxApi, output, context.packageParams);
         }
     });
 }
