@@ -5,7 +5,6 @@
  * @param {Object} packageParams of the databot.
  */
 function GrapPark(tdxApi, output, packageParams) {
-    var keyCount = 0;
     tdxApi.getDatasetData(packageParams.parkSources, null, null, null, function (errSources, sourcesData) {
         if (errSources) {
             output.error("Error Park sources table: %s", JSON.stringify(errSources));
@@ -63,31 +62,23 @@ function GrapPark(tdxApi, output, packageParams) {
                                         }
                                     });
 
-                                    var addRecurs = function (entryList, cbAdd) {
-                                        if (!entryList.length)
-                                            cbAdd();
-                                        else {
-                                            var one_element = entryList.pop();
-                                            
-                                            tdxApi.addDatasetData(packageParams.parkDataTable, one_element, function (errAdd, resAdd) {
-                                                if (errAdd) {
-                                                    output.error("Error adding entry to dataset: %s", JSON.stringify(errAdd));
-                                                    addRecurs(entryList, cbAdd);
-                                                } else {
-                                                    output.debug("Added %s to the dataset", JSON.stringify(one_element));
-                                                    output.result({ 'timestamp': Date.now(), 'value': one_element });
-                                                    keyCount++;
-                                                    addRecurs(entryList, cbAdd);
-                                                }
-                                            });
-                                        }
-                                    };
-                                    addRecurs(entryList, cb)
+                                    Promise.all(_.map(entryList,function(val){
+                                        return tdxApi.addDatasetDataAsync(packageParams.parkDataTable, val).then(function(resAdd){
+                                            output.debug("Added %s to the dataset", JSON.stringify(val));
+                                            return ({error: false});
+                                        }, function(errAdd){
+                                            output.error("Error adding entry to dataset: %s", JSON.stringify(errAdd));
+                                            return ({error: true});
+                                        });
+                                    })).then(function(resArr){
+                                        cb();
+                                    });
                                 }
                             });
                         }
                     });
             }
+
 
             var computing = false;
             var timer = setInterval(function () {
@@ -116,6 +107,8 @@ function databot(input, output, context) {
         accessTokenTTL: context.packageParams.accessTokenTTL
     });
 
+    Promise.promisifyAll(tdxApi);
+
     tdxApi.authenticate(context.shareKeyId, context.shareKeySecret, function (err, accessToken) {
         if (err) {
             output.error("%s", JSON.stringify(err));
@@ -129,6 +122,7 @@ function databot(input, output, context) {
 var input;
 var _ = require('lodash');
 var request = require("superagent");
+var Promise = require("bluebird");
 var parseXmlString = require('xml2js').parseString;
 var TDXAPI = require("nqm-api-tdx");
 
