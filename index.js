@@ -68,6 +68,7 @@ function GrapPark(tdxApi, output, packageParams) {
                                 })
                                 .catch((err) => {
                                     // TDX API error or XML parse error.
+                                    output.error(err);
                                     output.error("Failure processing entries: %s", err.message);
                                     return ({ error: true });
                                 })
