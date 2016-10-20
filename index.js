@@ -43,13 +43,10 @@ function GrapPark(tdxApi, output, packageParams) {
                             output.error("API request error: %s", error);
                             cb();
                         } else {
-                            parseXmlString(response.text, function (errXmlParse, result) {
-                                if (errXmlParse) {
-                                    output.error("XML parse error: %s", JSON.stringify(errXmlParse));
-                                    cb();
-                                } else {
+                            parseXmlStringAsync(response.text)
+                                .then((result) => {
                                     var entryList = [];
-                                    _.map(result.feed.datastream, function (val) {
+                                    _.forEach(result.feed.datastream, (val) => {
                                         if (idList.indexOf(Number(val['$']['id'])) > -1) {
                                             var entry = {
                                                 'ID': Number(val['$']['id']),
@@ -62,29 +59,34 @@ function GrapPark(tdxApi, output, packageParams) {
                                         }
                                     });
 
-                                    Promise.all(_.map(entryList,function(val){
-                                        return tdxApi.addDatasetDataAsync(packageParams.parkDataTable, val).then(function(resAdd){
-                                            output.debug("Added %s to the dataset", JSON.stringify(val));
-                                            return ({error: false});
-                                        }, function(errAdd){
-                                            output.error("Error adding entry to dataset: %s", JSON.stringify(errAdd));
-                                            return ({error: true});
-                                        });
-                                    })).then(function(resArr){
-                                        cb();
-                                    });
-                                }
-                            });
+                                    return tdxApi.updateDatasetDataAsync(packageParams.parkDataTable, entryList, true);
+                                })
+                                .then((res) => {
+                                    // TDX API result.
+                                    output.debug(res);
+                                    return ({ error: false });
+                                })
+                                .catch((err) => {
+                                    // TDX API error or XML parse error.
+                                    output.error("Failure processing entries: %s", err.message);
+                                    return ({ error: true });
+                                })
+                                .then((res) => {
+                                    // Finish execution
+                                    return cb(res);
+                                });
                         }
                     });
             }
 
-
             var computing = false;
-            var timer = setInterval(function () {
+            var timer = setInterval(()=>{
                 if (!computing) {
                     computing = true;
-                    req(element, function () { computing = false; });
+                    req(element, (res)=>{
+                        output.debug(res);
+                        computing = false;
+                    });
                 }
             }, packageParams.timerFrequency);
         }
@@ -123,8 +125,12 @@ var input;
 var _ = require('lodash');
 var request = require("superagent");
 var Promise = require("bluebird");
-var parseXmlString = require('xml2js').parseString;
+var xml2js = require('xml2js');
 var TDXAPI = require("nqm-api-tdx");
+var parseXmlString;
+
+Promise.promisifyAll(xml2js);
+parseXmlStringAsync = xml2js.parseStringAsync;
 
 if (process.env.NODE_ENV == 'test') {
     // Requires nqm-databot-gpsgrab.json file for testing
