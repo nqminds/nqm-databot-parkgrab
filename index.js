@@ -43,9 +43,9 @@ function GrabPark(tdxApi, output, packageParams) {
                             output.error("API request error: %s", error);
                             cb();
                         } else {
+                            var entryList = [];
                             parseXmlStringAsync(response.text)
                                 .then((result) => {
-                                    var entryList = [];
                                     _.forEach(result.feed.datastream, (val) => {
                                         if (idList.indexOf(Number(val['$']['id'])) > -1) {
                                             var entry = {
@@ -64,7 +64,7 @@ function GrabPark(tdxApi, output, packageParams) {
                                 .then((res) => {
                                     // TDX API result.
                                     output.debug(res);
-                                    return ({ error: false });
+                                    return tdxApi.updateDatasetDataAsync(packageParams.parkDataTableLatest, entryList, true);
                                 })
                                 .catch((err) => {
                                     // TDX API error or XML parse error.
@@ -79,7 +79,7 @@ function GrabPark(tdxApi, output, packageParams) {
                         }
                     });
             }
-
+        
             var computing = false;
             var timer = setInterval(()=>{
                 if (!computing) {
@@ -90,6 +90,7 @@ function GrabPark(tdxApi, output, packageParams) {
                     });
                 }
             }, packageParams.timerFrequency);
+
         }
     });
 }
