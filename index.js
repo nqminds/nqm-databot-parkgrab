@@ -59,11 +59,13 @@ function GrabPark(tdxApi, output, packageParams) {
                                         }
                                     });
 
+                                    output.debug("Saving %d entries to parkDataTable", entryList.length);
                                     return tdxApi.updateDatasetDataAsync(packageParams.parkDataTable, entryList, true);
                                 })
                                 .then((res) => {
                                     // TDX API result.
                                     output.debug(res);
+                                    output.debug("Saving %d entries to parkDataTableLatest", entryList.length);
                                     return tdxApi.updateDatasetDataAsync(packageParams.parkDataTableLatest, entryList, true);
                                 })
                                 .catch((err) => {
@@ -74,6 +76,8 @@ function GrabPark(tdxApi, output, packageParams) {
                                 })
                                 .then((res) => {
                                     // Finish execution
+                                    output.debug(res);
+                                    output.debug("Done!")
                                     return cb(res);
                                 });
                         }
