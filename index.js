@@ -32,15 +32,12 @@ function GrabPark(tdxApi, output, packageParams) {
             });
 
             var req = function (el, cb) {
-
-                output.debug("Processing element Host:%s", el.Host);
-
                 request
                     .get(el.Host + el.Path)
                     .auth(el.APIKey, '')
                     .end((error, response) => {
                         if (error) {
-                            output.error("API request error: %s", error);
+                            output.error("API request error: %s", JSON.stringify(error));
                             cb();
                         } else {
                             var entryList = [];
@@ -59,25 +56,19 @@ function GrabPark(tdxApi, output, packageParams) {
                                         }
                                     });
 
-                                    output.debug("Saving %d entries to parkDataTable", entryList.length);
                                     return tdxApi.updateDatasetDataAsync(packageParams.parkDataTable, entryList, true);
                                 })
                                 .then((res) => {
-                                    // TDX API result.
-                                    output.debug(res);
-                                    output.debug("Saving %d entries to parkDataTableLatest", entryList.length);
                                     return tdxApi.updateDatasetDataAsync(packageParams.parkDataTableLatest, entryList, true);
                                 })
                                 .catch((err) => {
                                     // TDX API error or XML parse error.
-                                    output.error(err);
                                     output.error("Failure processing entries: %s", err.message);
                                     return ({ error: true });
                                 })
                                 .then((res) => {
                                     // Finish execution
-                                    output.debug(res);
-                                    output.debug("Done!")
+                                    output.debug("Saved %d entries to parkDataTable", entryList.length);
                                     return cb(res);
                                 });
                         }
@@ -89,7 +80,6 @@ function GrabPark(tdxApi, output, packageParams) {
                 if (!computing) {
                     computing = true;
                     req(element, (res)=>{
-                        output.debug(res);
                         computing = false;
                     });
                 }
